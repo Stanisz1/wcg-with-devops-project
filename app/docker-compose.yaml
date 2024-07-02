@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  redis:
+    build:
+      context: redis
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  back:
+    build:
+      context: back
+      dockerfile: Dockerfile
+    environment:
+      REDIS_SERVER: redis:6379
+      
+    depends_on:
+      - redis
+    ports:
+      - "4000:4000"
+
+
+  front:
+    build:
+      context: front
+      dockerfile: Dockerfile
+    environment:
+      CLIENT_API_URL: http://frontend
+      BACKEND_API_URL: http://backend
+      
+    depends_on:
+      - redis
+      - back
+    # healthcheck:
+    #   test: curl  -f "http://localhost:3000||exit 1  
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    ports:
+      - "3000:3000"
+    volumes:
+      - "./app:/usr/src/app"
+    
+
+
+  nginx:
+    build:
+      context: nginx 
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - front
+      - back
+      - redis
